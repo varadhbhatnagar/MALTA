@@ -19,14 +19,14 @@ def findreplace(char, string):
    return ''.join(string.split(char))
 
 
-Path(ATMA_PROCESSED_VIDEOS_DIRECTORY).mkdir(parents=True, exist_ok=True)
-Path(ATMA_PROCESSED_CAPTIONS_DIRECTORY).mkdir(parents=True, exist_ok=True)
+Path(PROCESSED_VIDEOS_DIRECTORY).mkdir(parents=True, exist_ok=True)
+Path(PROCESSED_CAPTIONS_DIRECTORY).mkdir(parents=True, exist_ok=True)
 
-for caption_filename in os.listdir(ATMA_RAW_CAPTIONS_DIRECTORY):
+for caption_filename in os.listdir(RAW_CAPTIONS_DIRECTORY):
     video_cut_ts = []
     print(caption_filename)
 
-    with open(ATMA_RAW_CAPTIONS_DIRECTORY+ caption_filename,'r') as file:
+    with open(RAW_CAPTIONS_DIRECTORY+ caption_filename,'r') as file:
         data = file.read()
         original_timestamps = timestamp_regex.findall(data)
         original_timestamps.sort()
@@ -58,13 +58,13 @@ for caption_filename in os.listdir(ATMA_RAW_CAPTIONS_DIRECTORY):
 
         print(video_cut_ts)
 
-    with open(ATMA_RAW_CAPTIONS_DIRECTORY+ caption_filename,'r') as file:
+    with open(RAW_CAPTIONS_DIRECTORY+ caption_filename,'r') as file:
         data = file.read()
 
         #print(original_timestamps)
         #print(converted_timestamps)
         
-        video_names = os.listdir(ATMA_RAW_VIDEOS_DIRECTORY)
+        video_names = os.listdir(RAW_VIDEOS_DIRECTORY)
         video_filename = findreplace('-', caption_filename).split('.')[0]
         video_filename = video_filename[:len(video_filename)-3]
         VIDEO_FOUND = 0
@@ -78,7 +78,7 @@ for caption_filename in os.listdir(ATMA_RAW_CAPTIONS_DIRECTORY):
             print("Not Found")
         z = 1
         for i in range(0, len(video_cut_ts)-1, 2):
-            modified_caption_filename = ATMA_PROCESSED_CAPTIONS_DIRECTORY+caption_filename.split('.')[0]+str(z)+'.txt'
+            modified_caption_filename = PROCESSED_CAPTIONS_DIRECTORY+caption_filename.split('.')[0]+str(z)+'.txt'
             cf = open(modified_caption_filename, "w")
 
             for k in range(0,len(converted_timestamps),2):
@@ -110,7 +110,7 @@ for caption_filename in os.listdir(ATMA_RAW_CAPTIONS_DIRECTORY):
 
             if os.stat(modified_caption_filename).st_size != 0:
                 #print(video_filename)
-                ffmpeg_extract_subclip(ATMA_RAW_VIDEOS_DIRECTORY+corresponding_video, video_cut_ts[i]/1000, video_cut_ts[i+1]/1000, targetname=ATMA_PROCESSED_VIDEOS_DIRECTORY+ corresponding_video.split('.')[0]+str(z)+'.mp4')
+                ffmpeg_extract_subclip(RAW_VIDEOS_DIRECTORY+corresponding_video, video_cut_ts[i]/1000, video_cut_ts[i+1]/1000, targetname=PROCESSED_VIDEOS_DIRECTORY+ corresponding_video.split('.')[0]+str(z)+'.mp4')
 
             else:
                 os.remove(modified_caption_filename)
