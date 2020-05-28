@@ -11,4 +11,5 @@ src/*.egg-info
 lib
 lib64
 __pycache__/
-*.pickle
+/src/scripts/feature_generation/video_feature_generation/c3d/c3d.pickle
+
