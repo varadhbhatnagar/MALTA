@@ -7,6 +7,7 @@ CAPTION_EXTENSION = ".txt"	# Include '.' before the extension
 CAPTION_LANGUAGE = "mar"        #  mar for Marathi
                                 #  eng for English
 AUDIO_FEATURES_TO_USE = "vgg"
+VIDEO_FEATURES_TO_USE = "c3d"
 TRAIN_TEST_SPLIT = 0.8
 
 VIDEO_LIST_FILENAME = "video_list.txt"
@@ -20,3 +21,8 @@ ANNOTATION_TEST_PARSED_FILENAME = "Annotation_video_"+CAPTION_LANGUAGE+"_test_pa
 MOVIE_LENGTH_FILENAME = "movie_length.txt"
 LABEL_FOLDERNAME="middle-labels"
 NUMBER_OF_SEGMENTS=128
+FULL_SPLIT_DATASET_FILENAME = "dataset_split_full.npz"
+SMALL_SPLIT_DATASET_FILENAME = "dataset_split_small.npz"
+USE_FULL_SPLIT = True
+CONT_DIRECTORY_NAME = "video_audio_cont_" + AUDIO_FEATURES_TO_USE
+CONT_CAPTIONS_DIRECTORY_NAME = "video_audio_cont_captions_" + AUDIO_FEATURES_TO_USE

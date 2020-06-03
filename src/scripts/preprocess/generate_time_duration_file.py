@@ -7,8 +7,8 @@ from paths import *
 from constants import *
 
 def getLength(filename):
-    result = subprocess.Popen(['ffprobe', filename], stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    return [x for x in result.stdout.readlines() if b"Duration" in x]
+    result = subprocess.Popen(['ffprobe', filename], stdout = subprocess.PIPE, stderr = subprocess.STDOUT, encoding="utf-8")
+    return [x for x in result.stdout.readlines() if "Duration" in x]
 
 video_list=[]
 video_list = os.listdir(PROCESSED_VIDEOS_DIRECTORY)
@@ -17,8 +17,7 @@ movie_length_file=open(MOVIE_LENGTH_FILE_PATH,"w")
 idx=0
 for a_video in video_list:
     print(PROCESSED_VIDEOS_DIRECTORY+a_video)
-    dur_string=getLength(PROCESSED_VIDEOS_DIRECTORY+a_video)
-    dur_string = "".join(map(chr, dur_string)) 
+    dur_string=getLength(PROCESSED_VIDEOS_DIRECTORY+a_video) 
     dur_substr=dur_string[0][12:23]
     print(dur_substr)
     hh_mm_ss, ms=dur_substr.split(".")

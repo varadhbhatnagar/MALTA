@@ -1,20 +1,17 @@
 import numpy as np
 import os, json, h5py, math, pdb, glob
-
-
-splitdataset_path_small = '/home/varad/Atma_Videos_New_Shortened/output/Atma_dataset_split_small.npz'
-
-splitdataset_path_full = '/home/varad/Atma_Videos_New_Shortened/output/Atma_dataset_split_full.npz'
-
-train_path = '/home/varad/Atma_Videos_New_Shortened/output/Annotation_video_mar_train_parsed.txt'
-val_path = '/home/varad/Atma_Videos_New_Shortened/output/Annotation_video_mar_test_parsed.txt'
+import sys
+from pathlib import Path
+sys.path.insert(0,'..')
+from paths import *
+from constants import *
 
 
 def generate_split_list():
     
     train_set=set({})
     i=0
-    with open(train_path,"r") as f:
+    with open(ANNOTATION_TRAIN_PARSED_PATH,"r") as f:
         for line in f:
 #             print line
             content=line.rstrip().split(" ")
@@ -25,7 +22,7 @@ def generate_split_list():
     train_list=list(train_set) 
 #     print train_list
     val_set=set({})
-    with open(val_path,"r") as f:
+    with open(ANNOTATION_TEST_PARSED_PATH,"r") as f:
         for line in f:
 #             print line
             content=line.rstrip().split(" ")
@@ -35,8 +32,8 @@ def generate_split_list():
 #                 break
     val_list=list(val_set)
 #     print val_list
-#     train_list = json.load(open(train_path)).keys()
-#     val_list = json.load(open(val_path)).keys()
+#     train_list = json.load(open(ANNOTATION_TRAIN_PARSED_PATH)).keys()
+#     val_list = json.load(open(ANNOTATION_TEST_PARSED_PATH)).keys()
 
 #     print len(train_list)
 #     print len(val_list)
@@ -50,12 +47,12 @@ def generate_split_list():
 #     print train_list_small
 #     print val_list
 
-    print len(train_list_full)
-    print len(train_list_small)
-    print len(val_list)
+    print(len(train_list_full))
+    print(len(train_list_small))
+    print(len(val_list))
 
-    np.savez(splitdataset_path_full,train = train_list_full, val = val_list)
-    np.savez(splitdataset_path_small,train = train_list_small, val = val_list)
+    np.savez(FULL_SPLIT_DATASET_PATH,train = train_list_full, val = val_list)
+    np.savez(SMALL_SPLIT_DATASET_PATH,train = train_list_small, val = val_list)
 
 
 if __name__ == '__main__':

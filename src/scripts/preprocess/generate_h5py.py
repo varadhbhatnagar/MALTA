@@ -7,20 +7,24 @@
 import numpy as np
 import os, json, h5py, math, pdb, glob
 import pickle
+import sys
+from pathlib import Path
+sys.path.insert(0,'..')
+from paths import *
+from constants import *
 
 MAX_LEN = 128
 BATCH_SIZE = 20
-h5py_path = '/home/data/Atma_Videos_New_Shortened/c3d_features/h5py/'
 
-feature_path_c3d = '/home/data/Atma_Videos_New_Shortened/c3d_features/c3d_fc6_features.hdf5'
-all_c3d_fts = h5py.File(feature_path_c3d)
+all_c3d_fts = h5py.File(VIDEO_FEATURES_H5PY_PATH)
 
 audio_data = h5py.File(AUDIO_FEATURES_H5PY_PATH)
-movie_detail_path = '/home/data/Atma_Videos_New_Shortened/output/movie_length.txt'
-
-splitdataset_path = '/home/data/Atma_Videos_New_Shortened/output/Atma_dataset_split_full.npz'
 
 
+if USE_FULL_SPLIT:
+    splitdataset_path = FULL_SPLIT_DATASET_PATH
+else:
+    splitdataset_path = SMALL_SPLIT_DATASET_PATH
 # In[19]:
 
 
@@ -50,7 +54,7 @@ splitdataset_path = '/home/data/Atma_Videos_New_Shortened/output/Atma_dataset_sp
 
 
 movie_length_dict={}
-with open(movie_detail_path)  as f:
+with open(MOVIE_LENGTH_FILE_PATH)  as f:
     for l in f:
         content=l.rstrip().split(" ")
         content[1]=float(content[1])
@@ -116,8 +120,7 @@ def check_HL_nonHL_exist(label):
 
 
 def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0):
-    print('Hi')
-    dirname = os.path.join(h5py_path, feature_folder_name)
+    dirname = os.path.join(PROCESSED_OUTPUT_DIRECTORY, feature_folder_name)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
     num = len(np.unique(q)) # how much videos here
@@ -127,10 +130,10 @@ def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0)
         batch_num = int(num / BATCH_SIZE) + 1
     q_idx = 0
     f_txt = open(os.path.join(dirname, dataset + '.txt'), 'w')
-    print("HERE!1") 
-    for i in xrange(batch_start, batch_start + batch_num): # every h5 file contains BATCH_SIZE videos
+ 
+    for i in range(batch_start, batch_start + batch_num): # every h5 file contains BATCH_SIZE videos
         train_filename = os.path.join(dirname, dataset + str(i) + '.h5') #each file is a mini-batch
-        print("Here2")
+        
         print(train_filename)
         if os.path.isfile(train_filename):
             q_idx += BATCH_SIZE
@@ -144,7 +147,7 @@ def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0)
             f['reindex'] = np.zeros(MAX_LEN)
             fname_tmp = []
             title_tmp = []
-            for j in xrange(BATCH_SIZE):
+            for j in range(BATCH_SIZE):
                 X_id = np.where(q == q_idx)[0]  # find the video segment features of video q_idx
 #                 print X_id
                 #while(len(X_id) == 0 or not check_HL_nonHL_exist(y[X_id])):
@@ -204,7 +207,7 @@ def get_feats_depend_on_label(label, per_f, v, a, idx, d):
     y = []  # indicate if video is finished
     q = []  # idx is the index of video in train/test/val dataset, all the segment in video will be tagged as idx in list q
 #     print len(label[0])
-    for l_index in xrange(len(label[0])):
+    for l_index in range(len(label[0])):
         low = int(label[0][l_index][0])
         up = int(label[0][l_index][1])+1
         lowa = int(label[1][l_index][0])
@@ -234,7 +237,7 @@ def load_feats(files, dataset, feature):
     
     for ele in files: 
 #         print ele, idx
-        l_path = os.path.join(LABEL_PATH, ele.split(".")[0] + '.json')
+        l_path = os.path.join(LABEL_DIRECTORY, ele.split(".")[0] + '.json')
 #         print l_path
         label = json.load(open(l_path))
         if len(label[0]) > MAX_LEN:
@@ -329,7 +332,7 @@ def driver(inp_type, Rep_type, outp_folder_name):
 
 def getlist(path, split):
     List = glob.glob(path+split+'*.h5')
-    print path+split+'.txt'
+    print (path+split+'.txt')
     f = open(path+split+'.txt','w')
     for ele in List:
         f.write(ele+'\n')
@@ -340,11 +343,9 @@ def getlist(path, split):
 
 # if __name__ == '__main__':
 
-driver('h5py','c3d','video_audio_cont_mfcc')
-
-path = os.path.join(h5py_path, 'video_audio_cont' + '/')
-getlist(path,'train')
-getlist(path,'val')
+driver('h5py', VIDEO_FEATURES_TO_USE, CONT_DIRECTORY_NAME)
+getlist(CONT_DIRECTORY, 'train')
+getlist(CONT_DIRECTORY, 'val')
 
 
 # In[ ]:
