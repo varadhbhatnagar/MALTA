@@ -1,14 +1,10 @@
 import os
 import codecs
-
-input_path = '/home/varad/Atma_Videos_New_Shortened/output/'
-annotation_folder = '/home/varad/Atma_Videos_New_Shortened/captions/'
-output_path = '/home/varad/Atma_Videos_New_Shortened/output/'
-annotation_video_mar_train = input_path+'Annotation_video_mar_train_path.txt'
-annotation_video_mar_test = input_path+'Annotation_video_mar_test_path.txt'
-annotation_video_mar_train_parsed = input_path+'Annotation_video_mar_train_parsed.txt'
-annotation_video_mar_test_parsed = input_path+'Annotation_video_mar_test_parsed.txt'
-
+import sys
+from pathlib import Path
+sys.path.insert(0,'..')
+from paths import *
+from constants import *
 
 def is_ascii(s):
     return True
@@ -134,9 +130,9 @@ def get_parsed_arr(filename):
 #     else:
         
 
-annotation_video_mar_train_parsed_file=open(annotation_video_mar_train_parsed,"w")
+annotation_video_train_parsed_file=open(ANNOTATION_TRAIN_PARSED_PATH,"w")
 count_idx=0
-with open(annotation_video_mar_train,"r", encoding = 'utf-8') as f:
+with open(ANNOTATION_TRAIN_PATH,"r", encoding = 'utf-8') as f:
     for line in f:
         count_idx=count_idx+1
         if(count_idx%20==0):
@@ -152,13 +148,13 @@ with open(annotation_video_mar_train,"r", encoding = 'utf-8') as f:
             anno_arr[i]['caption']=anno_arr[i]['caption'].replace("-"," ")
             anno_arr[i]['caption']=anno_arr[i]['caption'].replace("!","")
             
-            annotation_video_mar_train_parsed_file.write(video_id+" "+anno_arr[i]['start']+" "+anno_arr[i]['end']+"##"+anno_arr[i]['caption'].rstrip()+"\n")
+            annotation_video_train_parsed_file.write(video_id+" "+anno_arr[i]['start']+" "+anno_arr[i]['end']+"##"+anno_arr[i]['caption'].rstrip()+"\n")
 #         break
-annotation_video_mar_train_parsed_file.close()
+annotation_video_train_parsed_file.close()
 
-annotation_video_mar_test_parsed_file=open(annotation_video_mar_test_parsed,"w")
+annotation_video_test_parsed_file=open(ANNOTATION_TEST_PARSED_PATH,"w")
 count_idx=0
-with open(annotation_video_mar_test,"r", encoding = 'utf-8') as f:
+with open(ANNOTATION_TEST_PATH,"r", encoding = 'utf-8') as f:
     for line in f:
         count_idx=count_idx+1
         if(count_idx%20==0):
@@ -173,7 +169,7 @@ with open(annotation_video_mar_test,"r", encoding = 'utf-8') as f:
             anno_arr[i]['caption']=anno_arr[i]['caption'].replace(",","")
             anno_arr[i]['caption']=anno_arr[i]['caption'].replace("-"," ")
             anno_arr[i]['caption']=anno_arr[i]['caption'].replace("!","")
-            annotation_video_mar_test_parsed_file.write(video_id+" "+anno_arr[i]['start']+" "+anno_arr[i]['end']+"##"+anno_arr[i]['caption'].rstrip()+"\n")
+            annotation_video_test_parsed_file.write(video_id+" "+anno_arr[i]['start']+" "+anno_arr[i]['end']+"##"+anno_arr[i]['caption'].rstrip()+"\n")
 #         break
-annotation_video_mar_test_parsed_file.close()
+annotation_video_test_parsed_file.close()
 
