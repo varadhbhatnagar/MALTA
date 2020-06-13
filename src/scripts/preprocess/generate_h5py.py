@@ -149,18 +149,19 @@ def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0)
             title_tmp = []
             for j in range(BATCH_SIZE):
                 X_id = np.where(q == q_idx)[0]  # find the video segment features of video q_idx
-#                 print X_id
+#                print(X_id)
                 #while(len(X_id) == 0 or not check_HL_nonHL_exist(y[X_id])):
                 while(len(X_id) == 0):
                     q_idx += 1
                     #print q_idx
                     X_id = np.where(q == q_idx)[0]
+#                    print("QIDX , Q = ", str(q_idx), str(q))
                     if q_idx > max(q):
                         while len(fname_tmp) < BATCH_SIZE: #if the video is not enough for the last mini batch, insert ' '
                             fname_tmp.append('')
                             title_tmp.append('')
-                        fname_tmp = [a.encode('utf8') for a in fname_tmp]
-                        title_tmp = [a.encode('utf8') for a in title_tmp]
+                        fname_tmp = [a.encode('utf-8') for a in fname_tmp]
+                        title_tmp = [a.encode('utf-8') for a in title_tmp]
                         fname_tmp = np.array(fname_tmp)
                         title_tmp = np.array(title_tmp)
                         f['fname'] = fname_tmp
@@ -179,8 +180,8 @@ def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0)
                     while len(fname_tmp) < BATCH_SIZE:
                         fname_tmp.append('')
                         title_tmp.append('')
-                    fname_tmp = [a.encode('utf8') for a in fname_tmp]
-                    title_tmp = [a.encode('utf8') for a in title_tmp]
+                    fname_tmp = [a.encode('utf-8') for a in fname_tmp]
+                    title_tmp = [a.encode('utf-8') for a in title_tmp]
                     fname_tmp = np.array(fname_tmp)
                     title_tmp = np.array(title_tmp)
                     f['fname'] = fname_tmp
@@ -189,12 +190,12 @@ def generate_h5py(X, y, q, fname, dataset, feature_folder_name, batch_start = 0)
                     return
                 q_idx += 1
                 #print q_idx
-            fname_tmp = [a.encode('utf8') for a in fname_tmp]
-            title_tmp = [a.encode('utf8') for a in title_tmp]
+            fname_tmp = [a.encode('utf-8') for a in fname_tmp]
+            title_tmp = [a.encode('utf-8') for a in title_tmp]
             fname_tmp = np.array(fname_tmp)
             title_tmp = np.array(title_tmp)
-            f['fname'] = fname_tmp
-            f['title'] = title_tmp
+            f['fname'] = fname_tmp.astype('S')
+            f['title'] = title_tmp.astype('S')
         f_txt.write(train_filename + '\n')
 
 
@@ -236,7 +237,7 @@ def load_feats(files, dataset, feature):
     idx = 0 # video index in the dataset 
     
     for ele in files: 
-#         print ele, idx
+        print(ele, idx)
         l_path = os.path.join(LABEL_DIRECTORY, ele.split(".")[0] + '.json')
 #         print l_path
         label = json.load(open(l_path))
@@ -308,7 +309,7 @@ def Normalize(X, normal = 0):
 def driver(inp_type, Rep_type, outp_folder_name):
     dataset = 'train'
     List = np.load(splitdataset_path)[dataset]#[0:1300] # get the train,val or test training video name
-    #print List[0:10]
+    # print(List[0:10])
     num=2
 
     for iii in range(int(math.ceil(len(List) / num*1.0))):
