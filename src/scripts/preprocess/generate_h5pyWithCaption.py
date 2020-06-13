@@ -21,17 +21,22 @@ from constants import *
 
 
 path = PROCESSED_OUTPUT_DIRECTORY
-feature_folder = 'video_audio_cont_captions_vgg'
+ 
+ANNOTATION_TEST_PARSED_PATH = ANNOTATION_TEST_PARSED_PATH
+MOVIE_LENGTH_FILE_PATH = MOVIE_LENGTH_FILE_PATH
 
-train_captions_path = ANNOTATION_TRAIN_PARSED_PATH 
-val_captions_path = ANNOTATION_TEST_PARSED_PATH
-movie_detail_path = MOVIE_LENGTH_FILE_PATH
-splitdataset_path = FULL_SPLIT_DATASET_PATH 
+if USE_FULL_SPLIT:
+    splitdataset_path = FULL_SPLIT_DATASET_PATH
+else:
+    splitdataset_path = SMALL_SPLIT_DATASET_PATH
 
-batch_size = 20 # each mini batch will have batch_size sentences
+BATCH_SIZE = 20 # each mini batch will have BATCH_SIZE sentences
 n_length = 128
-video_fts_dim = 4096+128
 
+if AUDIO_FEATURES_TO_USE == "vgg":
+    video_fts_dim = CONT_CAPTION_FILE_FEATURE_DIMENSION_VGG
+else:
+    video_fts_dim = CONT_CAPTION_FILE_FEATURE_DIMENSION_MFCC
 
 
 
@@ -39,7 +44,7 @@ video_fts_dim = 4096+128
 
 
 movie_length_dict={}
-with open(movie_detail_path)  as f:
+with open(MOVIE_LENGTH_FILE_PATH)  as f:
     for l in f:
         content=l.rstrip().split(" ")
         content[1]=float(content[1])
@@ -54,7 +59,7 @@ def create_merge_j_dict():
     train_j={}
     dataset = 'train'
     List = np.load(splitdataset_path)[dataset]#[0:1300]
-    with open(train_captions_path) as f:
+    with open(ANNOTATION_TRAIN_PARSED_PATH) as f:
         for line in f:
             content=line.rstrip().split(" ")
             if content[0] in List:
@@ -81,7 +86,7 @@ def create_merge_j_dict():
     val_j={}
     dataset = 'val'
     List = np.load(splitdataset_path)[dataset]#[0:800]
-    with open(val_captions_path) as f:
+    with open(ANNOTATION_TEST_PARSED_PATH) as f:
         for line in f:
             content=line.rstrip().split(" ")
             if content[0] in List:
@@ -146,12 +151,12 @@ def getSegWeight(video_sec,ground_seg,label):
 
 def trans_video_youtube(datasplit):
 
-#     train_j = json.load(open(train_captions_path))
-#     val_j = json.load(open(val_captions_path))
+#     train_j = json.load(open(ANNOTATION_TRAIN_PARSED_PATH))
+#     val_j = json.load(open(ANNOTATION_TEST_PARSED_PATH))
     #merge_j dictionary created previously only
 #     merge_j=dict(train_j.items()+val_j.items())
 
-    List = open(path+'video_audio_cont_vgg/'+datasplit+'.txt').read().split('\n')[:-1] #get a list of h5 file, each file is a minibatch
+    List = open(CONT_DIRECTORY+datasplit+'.txt').read().split('\n')[:-1] #get a list of h5 file, each file is a minibatch
 
     initial = 0
     cnt = 0
@@ -165,16 +170,13 @@ def trans_video_youtube(datasplit):
     segWeight = []
     
     for ele in List:
-        #print(ele)
-        #print(initial)
+        print(ele)
+        print(initial)
         train_batch = h5py.File(ele)
-        #print(train_batch['title'][0])
         for idx, video in enumerate(train_batch['title']):
-            print(video)
             video = video.decode('utf-8')
             if video in merge_j.keys():
                 for capidx, caption in enumerate(merge_j[video]['sentences']):
-                    print(caption)
                     if len(caption.split(' ')) < 35:
                         fname.append(video)
                         duration.append(merge_j[video]['duration']) 
@@ -187,25 +189,23 @@ def trans_video_youtube(datasplit):
                         label.append(train_batch['label'][:,idx])
                         weights = getSegWeight(merge_j[video]['duration'], merge_j[video]['timestamps'][capidx], train_batch['label'][:,idx])
                         segWeight.append(weights)
-                        cnt += 1 #sentence is enough for batch_size
-                        if cnt == batch_size:
-                            #print(path+feature_folder+'/'+datasplit+str(initial)+'.h5')
-                            batch = h5py.File(path+feature_folder+'/'+datasplit+str(initial)+'.h5','w')
+                        cnt += 1 #sentence is enough for BATCH_SIZE
+                        if cnt == BATCH_SIZE:
+                            print(path+CONT_CAPTIONS_DIRECTORY_NAME+'/'+datasplit+str(initial)+'.h5')
+                            batch = h5py.File(path+CONT_CAPTIONS_DIRECTORY_NAME+'/'+datasplit+str(initial)+'.h5','w')
                             data = np.transpose(data,(1,0,2))
-                            batch['data'] = np.array(data)#np.zeros((n_length,batch_size,4096*2))
+                            batch['data'] = np.array(data)#np.zeros((n_length,BATCH_SIZE,4096*2))
                             fname = [a.encode('utf-8') for a in fname]
                             title = [a.encode('utf-8') for a in title]
                             fname = np.array(fname)
-                            print(fname)
                             title = np.array(title)
-                            print(title)
                             batch['duration'] = duration
                             batch['fname'] = fname
                             batch['title'] = title
                             batch['timestamps'] = timestamps
                             batch['norm_timestamps'] = norm_timestamps
                             batch['weights'] = np.transpose(np.array(segWeight))
-                            batch['label'] = np.transpose(np.array(label)) #np.zeros((n_length,batch_size))
+                            batch['label'] = np.transpose(np.array(label)) #np.zeros((n_length,BATCH_SIZE))
                             fname = []
                             duration = []
                             timestamps = []
@@ -217,38 +217,33 @@ def trans_video_youtube(datasplit):
                             cnt = 0
                             initial += 1
         if ele == List[-1] and len(fname) > 0:
-            print("HERERERE")
-            while len(fname) < batch_size:
+            while len(fname) < BATCH_SIZE:
                 fname.append('')
                 title.append('')
                 timestamps.append([-1,-1])
                 norm_timestamps.append([-1,-1])
                 duration.append(-1)
-            batch = h5py.File(path+feature_folder+'/'+datasplit+str(initial)+'.h5','w')
-            batch['data'] = np.zeros((n_length,batch_size,video_fts_dim))
-            batch['data'][:,:len(data),:] = np.transpose(np.array(data),(1,0,2))#np.zeros((n_length,batch_size,4096+1024))
-            print(fname)
+            batch = h5py.File(path+CONT_CAPTIONS_DIRECTORY_NAME+'/'+datasplit+str(initial)+'.h5','w')
+            batch['data'] = np.zeros((n_length,BATCH_SIZE,video_fts_dim))
+            batch['data'][:,:len(data),:] = np.transpose(np.array(data),(1,0,2))#np.zeros((n_length,BATCH_SIZE,4096+1024))
             fname = [a.encode('utf-8') for a in fname]
             fname = np.array(fname)
             title = [a.encode('utf-8') for a in title]
-            print(fname)
-            print(title)
             title = np.array(title)
-            print(title)
             batch['fname'] = fname
             batch['title'] = title
             batch['duration'] = duration
             batch['timestamps'] = timestamps
             batch['norm_timestamps'] = norm_timestamps
-            batch['weights'] = np.zeros((n_length,batch_size))
+            batch['weights'] = np.zeros((n_length,BATCH_SIZE))
             batch['weights'][:,:len(data)] = np.array(segWeight).T
-            batch['label'] = np.ones((n_length,batch_size))*(-1)
+            batch['label'] = np.ones((n_length,BATCH_SIZE))*(-1)
             batch['label'][:,:len(data)] = np.array(label).T
 
 
 
-def getlist(feature_folder_name, split):
-    list_path = os.path.join(path, feature_folder_name+'/')
+def getlist(CONT_CAPTIONS_DIRECTORY_NAME, split):
+    list_path = os.path.join(CONT_CAPTIONS_DIRECTORY)
     List = glob.glob(list_path+split+'*.h5')
     f = open(list_path+split+'.txt','w')
     for ele in List:
@@ -263,9 +258,9 @@ def getlist(feature_folder_name, split):
 
 
 # if __name__ == '__main__':
-if not os.path.exists(path+feature_folder):
-    os.makedirs(path+feature_folder)
+if not os.path.exists(CONT_CAPTIONS_DIRECTORY):
+    os.makedirs(CONT_CAPTIONS_DIRECTORY)
 trans_video_youtube('train')
 trans_video_youtube('val')
-getlist(feature_folder,'train')
-getlist(feature_folder,'val')
+getlist(CONT_CAPTIONS_DIRECTORY_NAME,'train')
+getlist(CONT_CAPTIONS_DIRECTORY_NAME,'val')
