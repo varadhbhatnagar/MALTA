@@ -15,8 +15,15 @@ SOURCE_DIRECTORY    =  os.path.join(PROJECT_DIRECTORY, "source", "")
 MODEL_DIRECTORY     =  os.path.join(SOURCE_DIRECTORY, "model", "")
 SCRIPTS_DIRECTORY   =  os.path.join(SOURCE_DIRECTORY, "scripts","")
 FEATURES_DIRECTORY  =  os.path.join(DATA_DIRECTORY, "features", "")
+MODEL_SAVE_DIRECTORY = os.path.join(PROJECT_DIRECTORY,"save_model", "")
+RESULT_SAVE_DIRECTORY = os.path.join(PROJECT_DIRECTORY,"save_result", "")
+
 
 # Data Paths : Add your Dataset paths here 
+
+# Third Party Paths
+
+WORD_EMBEDDING_PATH = os.path.join(DATA_DIRECTORY, "external", "cc.mr.300.bin")
 
 # Paths for Atma Dataset
 RAW_DATA_DIRECTORY = os.path.join(DATA_DIRECTORY, "raw", DATASET_NAME, "")
@@ -57,3 +64,4 @@ SMALL_SPLIT_DATASET_PATH = os.path.join(PROCESSED_OUTPUT_DIRECTORY, SMALL_SPLIT_
 
 CONT_DIRECTORY = os.path.join(PROCESSED_OUTPUT_DIRECTORY, CONT_DIRECTORY_NAME,"")
 CONT_CAPTIONS_DIRECTORY = os.path.join(PROCESSED_OUTPUT_DIRECTORY, CONT_CAPTIONS_DIRECTORY_NAME, "")
+
