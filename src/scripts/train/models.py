@@ -7,13 +7,13 @@ import pdb
 class Attention(nn.Module):
     def __init__(self, dim_hidden_attendee, dim_hidden_attendant):
         super(Attention, self).__init__()
-        self.embed_att_w = torch.zeros(dim_hidden_attendee,1)
+        self.embed_att_w = torch.zeros(dim_hidden_attendee,1).cuda()
         torch.nn.init.xavier_uniform_(self.embed_att_w)
-        self.embed_att_Wa = torch.zeros(dim_hidden_attendant, dim_hidden_attendee)
+        self.embed_att_Wa = torch.zeros(dim_hidden_attendant, dim_hidden_attendee).cuda()
         torch.nn.init.xavier_uniform_(self.embed_att_Wa)
-        self.embed_att_Ua = torch.zeros(dim_hidden_attendee, dim_hidden_attendee)
+        self.embed_att_Ua = torch.zeros(dim_hidden_attendee, dim_hidden_attendee).cuda()
         torch.nn.init.xavier_uniform_(self.embed_att_Ua)
-        self.embed_att_ba = torch.zeros(dim_hidden_attendee)
+        self.embed_att_ba = torch.zeros(dim_hidden_attendee).cuda()
 
     def forward(self, attendee_fts, dim_hidden_attendee, attendee_step_size, attendant_fts, video_mask):
         brcst_w = self.embed_att_w.unsqueeze(0).repeat(attendee_step_size,1,1) # n x h x 1
@@ -21,7 +21,7 @@ class Attention(nn.Module):
         e = torch.tanh(torch.matmul(attendant_fts.float(), self.embed_att_Wa) + attendee_part)
         e = torch.matmul(e, brcst_w)
         e = torch.sum(e,dim = 2) # n x b
-        e_hat_exp = torch.mul(torch.from_numpy(video_mask.T), torch.exp(e)) # n x b
+        e_hat_exp = torch.mul(video_mask.T, torch.exp(e)) # n x b
         denomin = torch.sum(e_hat_exp,dim = 0) # b
         denomin = denomin + denomin.eq(0).float()   # regularize denominator
         alphas = torch.div(e_hat_exp,denomin).unsqueeze(2).repeat(1,1,dim_hidden_attendee) # n x b x h  # normalize to obtain alpha
@@ -68,9 +68,13 @@ class ConcAV(nn.Module):
 
 
     def forward(self, vid, aud, cap, cap_embedding_mask, vid_mask, aud_mask, cap_mask):
-    	
+        aud_mask = torch.from_numpy(aud_mask).cuda()
+        vid_mask = torch.from_numpy(vid_mask).cuda()
+        cap_mask = torch.from_numpy(cap_mask).cuda()
+        cap_embedding_mask = torch.from_numpy(cap_embedding_mask).cuda()
+
         # Video LSTM
-        vid = torch.from_numpy(vid).float()
+        vid = torch.from_numpy(vid).float().cuda()
         vid, _ = self.video_rnn(vid)
         vid_dim = vid.size()
         vid = self.video_linear_transform(vid.contiguous().view(-1, 2*config.dim_hidden_video))
@@ -78,7 +82,7 @@ class ConcAV(nn.Module):
         vid = vid.view(vid_dim[0], vid_dim[1], int(vid_dim[2]/2))
 
         # Audio LSTM
-        aud = torch.from_numpy(aud).float()
+        aud = torch.from_numpy(aud).float().cuda()
         aud, _ = self.audio_rnn(aud)
         aud_dim = aud.size()
         aud = self.audio_linear_transform(aud.contiguous().view(-1, 2*config.dim_hidden_audio))
@@ -86,7 +90,7 @@ class ConcAV(nn.Module):
         aud = aud.view(aud_dim[0], aud_dim[1], int(aud_dim[2]/2))
 
         # Caption LSTM
-        cap = torch.from_numpy(cap).long()
+        cap = torch.from_numpy(cap).long().cuda()
         cap = self.caption_embedding(cap)
         cap = self.caption_embedding_dropout(cap)
         cap, _ = self.caption_rnn(cap)
@@ -94,7 +98,7 @@ class ConcAV(nn.Module):
         cap = self.caption_linear_transform(cap.contiguous().view(-1, 2*config.dim_hidden))
         cap = F.relu(cap)
         cap = cap.view(cap_dim[0], cap_dim[1], int(cap_dim[2]/2))
-        cap = torch.from_numpy(cap_embedding_mask)*cap.permute(1,0,2)
+        cap = cap_embedding_mask*cap.permute(1,0,2)
         cap = cap.permute(1,2,0)
         cap_mean = cap.mean(dim=2)
 
@@ -114,7 +118,7 @@ class ConcAV(nn.Module):
         # TODO : Incorporate AF model too
         # TODO : Dropout in FC layers, single layer model
 
-        multimodal_fts_concat = torch.add(predict_attention_weights_v, predict_attention_weights_a).float()
+        multimodal_fts_concat = torch.add(predict_attention_weights_v, predict_attention_weights_a).float().cuda()
         # if config.regress_layer_num ==1:
         #     predict_location = self.fc1(multimodal_fts_concat)
         #     predict_location = F.relu(predict_location)
