@@ -12,8 +12,7 @@ import time
 import h5py
 from keras.preprocessing import sequence
 import pdb
-import os
-
+import os, sys
 max_IoU5=0
 max_mean_iou = 0
 
@@ -133,7 +132,7 @@ def localizing_all(logging, val_data, test_model_path, result_save_dir):
         caption_list = caption_list + caption
         groundtruth_timestamps_list = groundtruth_timestamps_list + groundtruth_timestamps
         predict_timestamps_list = predict_timestamps_list + predict_timestamps
-        
+
     time_stamp = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
     index = test_model_path.find('model-')
     index_str = test_model_path[index:]
@@ -247,8 +246,9 @@ def train(sub_dir, logging, train_data, val_data, wordtoix, ixtoword, word_emb_i
             current_caption_length = np.zeros((config.batch_size))
             for ind in range(config.batch_size):
                 current_caption_length[ind] = np.sum(current_caption_masks[ind])
-        
+       
             model.train()
+
             predict_location, predict_attention_weights_v, predict_attention_weights_a = model.forward(vid = current_feats, aud = current_feats_audio, cap = current_caption_matrix, cap_embedding_mask = current_caption_emb_mask, vid_mask = current_video_masks, aud_mask = current_audio_masks, cap_mask = current_caption_masks)
             loss_val, loss_regression, loss_attention_v = my_loss(predict_location, current_video_location, predict_attention_weights_v, current_weights,  predict_attention_weights_a, current_weights, current_loss_mask)
             optimizer.zero_grad()
@@ -266,7 +266,7 @@ def train(sub_dir, logging, train_data, val_data, wordtoix, ixtoword, word_emb_i
         
         # Localizing
 
-        if np.mod(epoch, config.iter_localize) == 0 or epoch == n_epochs -1:
+        if np.mod(epoch, config.iter_localize) == 0 or epoch == config.n_epochs -1:
             logging.info('Epoch {:d} is done. Saving model ...'.format(epoch))
             print(model_save_dir)
             torch.save(model, os.path.join(model_save_dir, 'model-'+str(epoch)))
@@ -277,7 +277,7 @@ def train(sub_dir, logging, train_data, val_data, wordtoix, ixtoword, word_emb_i
             localizing_all(logging, val_data, test_model_path, result_save_dir)
 
 def main():
-    sub_dir, logging, regress_layer_num, model_save_dir, result_save_dir = make_prepare_path()
+    sub_dir, logging, model_save_dir, result_save_dir = make_prepare_path()
 
     meta_data, train_data, val_data = get_video_data_jukin()
     if config.task == 'train':
@@ -294,12 +294,11 @@ def main():
 
         get_word_embedding()
         word_emb_init = np.array(np.load(config.word_fts_path).tolist(),np.float32)
-        print(word_emb_init.shape)
-        logging.info('regress_layer_num = {:f}'.format(regress_layer_num*1.0))
+        logging.info('regress_layer_num = {:f}'.format(config.regress_layer_num*1.0))
 
         train(sub_dir, logging, train_data, val_data, wordtoix, ixtoword, word_emb_init, model_save_dir, result_save_dir)
-        #df = pd.read_csv("max_values_coattention_"+str(config.random_seed)+".csv")
-        #df.to_csv('result.csv', mode='a+', header=False)
+        df = pd.read_csv("max_values_coattention_"+str(config.random_seed)+".csv")
+        df.to_csv('result.csv', mode='a+', header=True)
     
     # elif config.task == 'localize':
     #     word_emb_init = np.array(np.load(open(config.word_fts_path)).tolist(),np.float32)

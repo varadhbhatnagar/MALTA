@@ -251,6 +251,7 @@ def load_feats(files, dataset, feature):
             # alist[0] = 'a'
             # aname = "".join(alist)
             # print(ele)
+            
             a = audio_data[ele.split(".")[0]]
             per_f = 8
             #print(ele)

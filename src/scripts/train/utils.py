@@ -142,4 +142,4 @@ def make_prepare_path():
     if not os.path.exists(config.words_dir):
         os.makedirs(config.words_dir)
 
-    return sub_dir, logging, config.regress_layer_num, model_save_path, result_save_path
+    return sub_dir, logging, model_save_path, result_save_path

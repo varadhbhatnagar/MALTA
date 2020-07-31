@@ -8,12 +8,22 @@ class Attention(nn.Module):
     def __init__(self, dim_hidden_attendee, dim_hidden_attendant):
         super(Attention, self).__init__()
         self.embed_att_w = torch.zeros(dim_hidden_attendee,1).cuda()
-        torch.nn.init.xavier_uniform_(self.embed_att_w)
+        torch.nn.init.xavier_uniform_(self.embed_att_w)       
         self.embed_att_Wa = torch.zeros(dim_hidden_attendant, dim_hidden_attendee).cuda()
         torch.nn.init.xavier_uniform_(self.embed_att_Wa)
         self.embed_att_Ua = torch.zeros(dim_hidden_attendee, dim_hidden_attendee).cuda()
         torch.nn.init.xavier_uniform_(self.embed_att_Ua)
         self.embed_att_ba = torch.zeros(dim_hidden_attendee).cuda()
+        
+
+        self.embed_att_w = nn.Parameter(self.embed_att_w)
+        self.embed_att_Wa = nn.Parameter(self.embed_att_Wa)
+        self.embed_att_Ua = nn.Parameter(self.embed_att_Ua)
+        self.embed_att_ba = nn.Parameter(self.embed_att_ba)
+
+
+
+        
 
     def forward(self, attendee_fts, dim_hidden_attendee, attendee_step_size, attendant_fts, video_mask):
         brcst_w = self.embed_att_w.unsqueeze(0).repeat(attendee_step_size,1,1) # n x h x 1
@@ -39,7 +49,6 @@ class ConcAV(nn.Module):
 
         # Caption Embedding Layer
         self.caption_embedding = nn.Embedding(weights_matrix.shape[0], embedding_dim = config.dim_word, padding_idx = 0)
-        self.caption_embedding_dropout = nn.Dropout(config.rnn_dropout)
         self.caption_embedding.weight.data.copy_(torch.from_numpy(weights_matrix))
         self.caption_embedding.requires_grad = False
 
@@ -57,12 +66,11 @@ class ConcAV(nn.Module):
         self.video_using_sentence_attention = Attention(config.dim_hidden_video, config.dim_hidden)
         self.audio_using_sentence_attention = Attention(config.dim_hidden_audio, config.dim_hidden)
         self.sentence_using_audio_video_attention = Attention(config.dim_hidden, config.dim_hidden_audio + config.dim_hidden_video)
-        self.video_using_attendend_sentence_attention = Attention(config.dim_hidden_video, config.dim_hidden)
-        self.audio_using_attendend_sentence_attention = Attention(config.dim_hidden_audio, config.dim_hidden)
-
+        
+        # Linear Layer for AF Mode
+        self.af_linear = nn.Linear(config.dim_hidden + config.dim_hidden_video + config.dim_hidden_audio, config.n_frame_step)
 
         # Prediction Layers
-        self.pred_dropout = nn.Dropout()
         self.fc1 = nn.Linear(config.n_frame_step, config.dim_hidden_regress)
         self.fc2 = nn.Linear(config.dim_hidden_regress, 2)
 
@@ -74,6 +82,7 @@ class ConcAV(nn.Module):
         cap_embedding_mask = torch.from_numpy(cap_embedding_mask).cuda()
 
         # Video LSTM
+
         vid = torch.from_numpy(vid).float().cuda()
         vid, _ = self.video_rnn(vid)
         vid_dim = vid.size()
@@ -82,6 +91,7 @@ class ConcAV(nn.Module):
         vid = vid.view(vid_dim[0], vid_dim[1], int(vid_dim[2]/2))
 
         # Audio LSTM
+
         aud = torch.from_numpy(aud).float().cuda()
         aud, _ = self.audio_rnn(aud)
         aud_dim = aud.size()
@@ -90,9 +100,9 @@ class ConcAV(nn.Module):
         aud = aud.view(aud_dim[0], aud_dim[1], int(aud_dim[2]/2))
 
         # Caption LSTM
+
         cap = torch.from_numpy(cap).long().cuda()
         cap = self.caption_embedding(cap)
-        cap = self.caption_embedding_dropout(cap)
         cap, _ = self.caption_rnn(cap)
         cap_dim = cap.size()
         cap = self.caption_linear_transform(cap.contiguous().view(-1, 2*config.dim_hidden))
@@ -106,25 +116,26 @@ class ConcAV(nn.Module):
         aud_temp = aud.permute(1,0,2)
 
         # Alternating Attention 
+
         attended_video_fts, predict_attention_weights_v  = self.video_using_sentence_attention.forward(vid_temp, config.dim_hidden_video,  config.n_frame_step, cap_mean, vid_mask)
         attended_audio_fts, predict_attention_weights_a = self.audio_using_sentence_attention.forward(aud_temp, config.dim_hidden_audio,  config.n_frame_step, cap_mean, aud_mask)
         attended_sentence_fts, predict_attention_weights_q_a = self.sentence_using_audio_video_attention.forward(cap_mean, config.dim_hidden,  config.n_caption_step, torch.cat((attended_video_fts, attended_audio_fts), dim=1), cap_mask)
         predict_attention_weights_q_v = predict_attention_weights_q_a
-        attended_video_fts, predict_attention_weights_v = self.video_using_attendend_sentence_attention.forward(vid_temp, config.dim_hidden_video, config.n_frame_step, attended_sentence_fts, vid_mask)
-        attended_audio_fts, predict_attention_weights_a = self.audio_using_attendend_sentence_attention.forward(aud_temp, config.dim_hidden_audio, config.n_frame_step, attended_sentence_fts, aud_mask)
+        attended_video_fts, predict_attention_weights_v = self.video_using_sentence_attention.forward(vid_temp, config.dim_hidden_video, config.n_frame_step, attended_sentence_fts, vid_mask)
+        attended_audio_fts, predict_attention_weights_a = self.audio_using_sentence_attention.forward(aud_temp, config.dim_hidden_audio, config.n_frame_step, attended_sentence_fts, aud_mask)
 
 
         # Regression Module
-        # TODO : Incorporate AF model too
-        # TODO : Dropout in FC layers, single layer model
 
-        multimodal_fts_concat = torch.add(predict_attention_weights_v, predict_attention_weights_a).float().cuda()
-        # if config.regress_layer_num ==1:
-        #     predict_location = self.fc1(multimodal_fts_concat)
-        #     predict_location = F.relu(predict_location)
-        # else:
-        predict_hidden = self.fc1(multimodal_fts_concat)
-        predict_location = F.relu(self.fc2(predict_hidden))
+        if config.model_mode == 'AF':
+            multimodal_fts_concat = torch.cat((attended_video_fts, attended_audio_fts, attended_sentence_fts), 1).float().cuda()
+            multimodal_fts_hidden = F.relu(self.af_linear(multimodal_fts_concat))
+            predict_hidden = self.fc1(multimodal_fts_hidden)
+            predict_location = F.relu(self.fc2(predict_hidden))
+        else: #AW
+            multimodal_fts_concat = torch.add(predict_attention_weights_v, predict_attention_weights_a).float().cuda()
+            predict_hidden = self.fc1(multimodal_fts_concat)
+            predict_location = F.relu(self.fc2(predict_hidden))
 
         return predict_location, predict_attention_weights_v, predict_attention_weights_a
 
