@@ -28,6 +28,4 @@ SMALL_SPLIT_DATASET_FILENAME = "dataset_split_small.npz"
 USE_FULL_SPLIT = True
 CONT_DIRECTORY_NAME = "video_audio_cont_" + AUDIO_FEATURES_TO_USE
 CONT_CAPTIONS_DIRECTORY_NAME = "video_audio_cont_captions_" + AUDIO_FEATURES_TO_USE
-dataset = 'Atma'
-model_mode = 'AF'
 

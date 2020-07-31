@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from models import ConcAV
 import config
 from utils import make_prepare_path, get_video_data_jukin, preProBuildWordVocab, get_word_embedding
 from iou_util_clip import calculate_mean_IOU
@@ -13,6 +12,9 @@ import h5py
 from keras.preprocessing import sequence
 import pdb
 import os, sys
+sys.path.insert(0,'../../models/')
+from models import ConcAV
+
 max_IoU5=0
 max_mean_iou = 0
 
@@ -140,9 +142,8 @@ def localizing_all(logging, val_data, test_model_path, result_save_dir):
     np.savez(final_save_path, video = video_name_list, duration = duration_list, caption = caption_list, \
     groundtruth_timestamps = groundtruth_timestamps_list, predict_timestamps = predict_timestamps_list)
     mean_iou = calculate_mean_IOU(logging,final_save_path,config.n_frame_step)
-    calculate_map_IOU(logging,final_save_path,config.n_frame_step)
-
     IoU1,IoU3,IoU5,IoU7 =calculate_map_IOU(logging,final_save_path,config.n_frame_step)
+   
     global max_IoU5
     global max_mean_iou
 
@@ -268,13 +269,17 @@ def train(sub_dir, logging, train_data, val_data, wordtoix, ixtoword, word_emb_i
 
         if np.mod(epoch, config.iter_localize) == 0 or epoch == config.n_epochs -1:
             logging.info('Epoch {:d} is done. Saving model ...'.format(epoch))
-            print(model_save_dir)
             torch.save(model, os.path.join(model_save_dir, 'model-'+str(epoch)))
 
             logging.info('Localizing videos ...'.format(epoch))
             test_model_path = model_save_dir + '/model-' + str(epoch)
             logging.info('Localizing testing set ...')
             localizing_all(logging, val_data, test_model_path, result_save_dir)
+
+    logging.info("Finally, saving the model ...")
+    torch.save(model, os.path.join(model_save_dir, 'model-'+str(epoch)))
+    tStop_total = time.time()
+    logging.info("Total Time Cost: {:f} s".format(round(tStop_total - tStart_total,2)))
 
 def main():
     sub_dir, logging, model_save_dir, result_save_dir = make_prepare_path()

@@ -5,7 +5,7 @@ sys.path.insert(0,'..')
 from paths import *
 from constants import *
 
-dataset = 'Atma'
+dataset = DATASET_NAME
 model_mode = 'AW'
 task = 'train'
 #model = ''
@@ -25,7 +25,7 @@ dim_hidden_audio = 64
 dim_hidden_regress = 64
 n_frame_step = 128
 n_caption_step = 35
-n_epochs =200
+n_epochs =4
 batch_size = 20
 learning_rate = 0.001 
 alpha_regress = 1.0
